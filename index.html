@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kelime Tekrarı - EN/TR Quiz (Copy)</title>
+<style>
+:root{
+  --bg:#f6f5f2; --card:#ffffff; --ink:#1c1c1e; --muted:#6b6b70;
+  --accent:#2f6f4f; --accent2:#c9622a; --good:#2f8f4e; --bad:#c0392b;
+  --border:#e6e3dd; --shadow:0 8px 24px rgba(0,0,0,0.06);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#17181a; --card:#212226; --ink:#f2f1ee; --muted:#a3a3a8;
+    --border:#33343a; --shadow:0 8px 24px rgba(0,0,0,0.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#17181a; --card:#212226; --ink:#f2f1ee; --muted:#a3a3a8;
+  --border:#33343a; --shadow:0 8px 24px rgba(0,0,0,0.35);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  min-height:100%; display:flex; justify-content:center;
+}
+.wrap{width:100%; max-width:520px; padding:20px 16px 32px;}
+header{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:8px; flex-wrap:wrap;}
+h1{font-size:1.15rem; margin:0; font-weight:700;}
+.mode-toggle{
+  display:flex; background:var(--card); border:1px solid var(--border); border-radius:999px; padding:3px;
+  box-shadow:var(--shadow);
+}
+.mode-toggle button{
+  border:none; background:transparent; padding:6px 12px; border-radius:999px; font-size:0.78rem;
+  cursor:pointer; color:var(--muted); font-weight:600;
+}
+.mode-toggle button.active{background:var(--accent); color:#fff;}
+.progress-row{display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:var(--muted); margin-bottom:10px;}
+.progress-bar{height:6px; background:var(--border); border-radius:99px; overflow:hidden; margin-bottom:20px;}
+.progress-fill{height:100%; background:var(--accent); width:0%; transition:width .25s ease;}
+.card{
+  background:var(--card); border:1px solid var(--border); border-radius:18px;
+  box-shadow:var(--shadow); padding:32px 20px; text-align:center; margin-bottom:18px;
+}
+.qlabel{font-size:0.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; font-weight:600;}
+.qword-row{display:flex; align-items:center; justify-content:center; gap:12px;}
+.qword{font-size:2rem; font-weight:800; word-break:break-word;}
+.sound-btn{
+  border:none; background:var(--accent); color:#fff; width:44px; height:44px; min-width:44px;
+  border-radius:50%; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--shadow); flex-shrink:0;
+}
+.sound-btn:active{transform:scale(0.93);}
+.sound-btn.playing{background:var(--accent2);}
+.options{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.opt{
+  background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:16px 10px;
+  font-size:1rem; font-weight:600; cursor:pointer; color:var(--ink); transition:transform .1s ease, background .15s, border-color .15s;
+  min-height:56px; display:flex; align-items:center; justify-content:center; text-align:center;
+}
+.opt:active{transform:scale(0.97);}
+.opt.correct{background:var(--good); border-color:var(--good); color:#fff;}
+.opt.wrong{background:var(--bad); border-color:var(--bad); color:#fff;}
+.opt[disabled]{cursor:default;}
+.footer-row{display:flex; justify-content:space-between; align-items:center; margin-top:6px;}
+.score{font-size:0.85rem; color:var(--muted);}
+.restart{
+  border:none; background:transparent; color:var(--accent2); font-weight:700; font-size:0.85rem; cursor:pointer;
+}
+.done{text-align:center; padding:40px 10px;}
+.done h2{margin-bottom:6px;}
+.done p{color:var(--muted); margin-bottom:22px;}
+.done .big{font-size:2.4rem; font-weight:800; color:var(--accent);}
+.btn{
+  background:var(--accent); color:#fff; border:none; padding:12px 22px; border-radius:999px;
+  font-weight:700; font-size:0.95rem; cursor:pointer; margin:6px;
+}
+.btn.secondary{background:transparent; color:var(--accent); border:1.5px solid var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📚 Kelime Tekrarı</h1>
+    <div class="mode-toggle">
+      <button id="modeEnBtn">EN → TR</button>
+      <button id="modeTrBtn">TR → EN</button>
+    </div>
+  </header>
+
+  <div class="progress-row">
+    <span id="progressText">0 / 0</span>
+    <span class="score" id="scoreText">Doğru: 0</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div id="quizArea"></div>
+</div>
+
+<script>
+const WORDS = [
+["healthy","sağlıklı"],["trustworthy","güvenilir"],["empty","boş"],["building","bina"],
+["friendly","arkadaş canlısı"],["expensive","pahalı"],["afraid","korkmuş / korkan"],["different","farklı"],
+["heavy","ağır"],["happy","mutlu"],["clean","temiz"],["engineer","mühendis"],
+["slow","yavaş"],["beautiful","güzel"],["dirty","kirli"],["thirsty","susamış / susuz"],
+["strong","güçlü"],["cherries","kirazlar"],["difficult","zor"],["busy","meşgul"],
+["nurse","hemşire"],["crowded","kalabalık"],["cheap","ucuz"],["honest","dürüst"],
+["tired","yorgun"],["important","önemli"],["dog","köpek"],["huge","devasa / çok büyük"],
+["weak","güçsüz"],["store","mağaza"],["early","erken"],["delicious","lezzetli"],
+["small","küçük"],["angry","kızgın"],["easy","kolay / basit"],["rainy","yağmurlu"],
+["full","dolu / tok"],["fast","hızlı"],["need","ihtiyaç duymak"],["sad","üzgün"],
+["slim","ince / zayıf"],["late","geç"],["tall","uzun boylu"],["careful","dikkatli"],
+["dangerous","tehlikeli"],["quiet","sessiz"],["noisy","gürültülü"],["sick","hasta"],
+["ready","hazır"],["hungry","aç"],["careless","dikkatsiz"],["polite","kibar"],
+["rude","kaba"],["safe","güvenli"],["cold","soğuk"],["hot","sıcak"],
+["big","büyük"],["same","aynı"],["similar","benzer"],["old","eski / yaşlı"],
+["young","genç"],["new","yeni"],["short","kısa"],["long","uzun"],
+["near","yakın"],["far","uzak"],["rich","zengin"],["poor","fakir"],
+["open","açık / açmak"],["closed","kapalı"],["stronger","daha güçlü"],["weaker","daha güçsüz"],
+["better","daha iyi"],["worse","daha kötü"],["kind","nazik / iyi kalpli"],["clever","zeki"],
+["brave","cesur"],["lazy","tembel"],["useful","faydalı"],["famous","ünlü"],
+["remember","hatırlamak"],["forget","unutmak"],["choose","seçmek"],["answer","cevap vermek"],
+["wait","beklemek"],["learn","öğrenmek"],["borrow","ödünç almak"],["return","geri vermek / dönmek"],
+["carry","taşımak"],["invite","davet etmek"],["buy","satın almak"],["sell","satmak"],
+["bring","getirmek"],["send","göndermek"],["meet","buluşmak / tanışmak"],["call","aramak"],
+["help","yardım etmek"],["start","başlamak"],["finish","bitirmek"],["understand","anlamak"],
+["ask","sormak"],["tell","söylemek / anlatmak"],["show","göstermek"],["use","kullanmak"],
+["work","çalışmak"],["live","yaşamak"],["like","sevmek / beğenmek"],["want","istemek"],
+["give","vermek"],["take","almak"],["eat","yemek yemek"],["drink","içmek"],
+["sleep","uyumak"],["wake","uyanmak"],["sit","oturmak"],["stand","ayakta durmak"],
+["walk","yürümek"],["run","koşmak"],["read","okumak"],["write","yazmak"],
+["eye","göz"],["ear","kulak"],["nose","burun"],["hair","saç"],
+["mouth","ağız"],["hand","el"],["foot","ayak"],["head","baş / kafa"],
+["face","yüz"],["tooth","diş"],["arm","kol"],["leg","bacak"],
+["finger","parmak"],["shoulder","omuz"],["neck","boyun"],["back","sırt"],
+["stomach","karın / mide"],["knee","diz"],["heart","kalp"],["blood","kan"],
+["thumb","başparmak"],["chest","göğüs"],["skin","deri / cilt"],["brain","beyin"],
+["lip","dudak"],["tongue","dil"],["cheek","yanak"],["forehead","alın"],
+["elbow","dirsek"],["ankle","ayak bileği"],["cook","yemek pişirmek"],["wash","yıkamak"],
+["drive","araba sürmek / sürmek"],["listen","dinlemek"],["watch","izlemek"],["speak","konuşmak"],
+["wear","giymek / giyinmek"],["find","bulmak"],["lose","kaybetmek"],["leave","ayrılmak / terk etmek"],
+["pay","ödemek"],["cut","kesmek"],["turn","dönmek / çevirmek"],["move","hareket etmek / taşınmak"],
+["change","değiştirmek"],["check","kontrol etmek"],["hold","tutmak"],["drop","düşürmek / bırakmak"],
+["pick","seçmek / almak"],["fix","tamir etmek / düzeltmek"],["push","itmek"],["pull","çekmek"],
+["break","kırmak / bozmak"],["keep","saklamak / tutmak"],["follow","takip etmek"],["stop","durmak / durdurmak"],
+["stay","kalmak"],["join","katılmak"],["touch","dokunmak"],["throw","atmak"],
+["enter","girmek"],["order","sipariş vermek"],["arrive","varmak"],["visit","ziyaret etmek"],
+["decide","karar vermek"],["agree","kabul etmek / aynı fikirde olmak"],["explain","açıklamak"],["make","yapmak"],
+["put","koymak"],["try","denemek"],["go","gitmek"],["come","gelmek"],
+["look","bakmak"],["hear","duymak"],["know","bilmek"],["think","düşünmek"],
+["feel","hissetmek"],["play","oynamak"],["study","ders çalışmak"],["receive","teslim almak / almak"]
+];
+
+let mode = 'en2tr'; // en2tr: soru İngilizce, şıklar Türkçe
+let order = [];
+let idx = 0;
+let correctCount = 0;
+let answered = false;
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function newRound(){
+  order = shuffle(WORDS.map((_,i)=>i));
+  idx = 0; correctCount = 0; answered = false;
+  render();
+}
+
+function pickWrongOptions(correctVal, correctIdx, langIndex){
+  const pool = WORDS.filter((_,i)=>i!==correctIdx).map(w=>w[langIndex]);
+  const shuffled = shuffle(pool);
+  const set = new Set([correctVal]);
+  const out = [];
+  for(const v of shuffled){
+    if(!set.has(v)){ set.add(v); out.push(v); }
+    if(out.length===3) break;
+  }
+  return out;
+}
+
+function render(){
+  const quizArea = document.getElementById('quizArea');
+  document.getElementById('progressText').textContent = `${Math.min(idx,WORDS.length)} / ${WORDS.length}`;
+  document.getElementById('scoreText').textContent = `Doğru: ${correctCount}`;
+  document.getElementById('progressFill').style.width = (Math.min(idx,WORDS.length)/WORDS.length*100)+'%';
+  document.getElementById('modeEnBtn').classList.toggle('active', mode==='en2tr');
+  document.getElementById('modeTrBtn').classList.toggle('active', mode==='tr2en');
+
+  if(idx >= WORDS.length){
+    quizArea.innerHTML = `
+      <div class="card done">
+        <h2>Tebrikler! 🎉</h2>
+        <p>200 kelimeyi tamamladın.</p>
+        <div class="big">${correctCount} / ${WORDS.length}</div>
+        <p>doğru cevap</p>
+        <button class="btn" id="restartBtn">Tekrar Başla</button>
+      </div>`;
+    document.getElementById('restartBtn').onclick = newRound;
+    return;
+  }
+
+  const wordIdx = order[idx];
+  const pair = WORDS[wordIdx];
+  const qLang = mode==='en2tr' ? 0 : 1;
+  const aLang = mode==='en2tr' ? 1 : 0;
+  const question = pair[qLang];
+  const correctAnswer = pair[aLang];
+  const wrongs = pickWrongOptions(correctAnswer, wordIdx, aLang);
+  const options = shuffle([correctAnswer, ...wrongs]);
+
+  quizArea.innerHTML = `
+    <div class="card">
+      <div class="qlabel">${mode==='en2tr' ? 'İngilizce' : 'Türkçe'}</div>
+      <div class="qword-row">
+        <div class="qword">${question}</div>
+        <button class="sound-btn" id="soundBtn" title="Telaffuzu dinle">🔊</button>
+      </div>
+    </div>
+    <div class="options" id="optionsGrid"></div>
+  `;
+  const grid = document.getElementById('optionsGrid');
+  const soundBtn = document.getElementById('soundBtn');
+  const speakLang = mode==='en2tr' ? 'en-US' : 'tr-TR';
+  soundBtn.onclick = ()=> speak(question, speakLang, soundBtn);
+  // auto-play pronunciation when a new word appears
+  speak(question, speakLang, soundBtn);
+  answered = false;
+  options.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.textContent = opt;
+    btn.onclick = ()=> handleAnswer(btn, opt, correctAnswer, grid);
+    grid.appendChild(btn);
+  });
+}
+
+function speak(text, lang, btnEl){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = lang;
+    utter.rate = 0.92;
+    if(btnEl){
+      btnEl.classList.add('playing');
+      utter.onend = ()=> btnEl.classList.remove('playing');
+      utter.onerror = ()=> btnEl.classList.remove('playing');
+    }
+    window.speechSynthesis.speak(utter);
+  } catch(e){ /* speech synthesis not available, ignore */ }
+}
+
+function handleAnswer(btn, chosen, correctAnswer, grid){
+  if(answered) return;
+  answered = true;
+  const allBtns = grid.querySelectorAll('.opt');
+  allBtns.forEach(b=>b.disabled = true);
+
+  if(chosen === correctAnswer){
+    btn.classList.add('correct');
+    correctCount++;
+    setTimeout(()=>{ idx++; render(); }, 550);
+  } else {
+    btn.classList.add('wrong');
+    allBtns.forEach(b=>{ if(b.textContent===correctAnswer) b.classList.add('correct'); });
+    setTimeout(()=>{ idx++; render(); }, 1100);
+  }
+}
+
+document.getElementById('modeEnBtn').onclick = ()=>{ if(mode!=='en2tr'){ mode='en2tr'; newRound(); } };
+document.getElementById('modeTrBtn').onclick = ()=>{ if(mode!=='tr2en'){ mode='tr2en'; newRound(); } };
+
+newRound();
+</script>
+</body>
+</html>
