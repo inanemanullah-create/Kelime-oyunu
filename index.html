@@ -78,6 +78,8 @@ h1{font-size:1.15rem; margin:0; font-weight:700;}
 .done h2{margin-bottom:6px;}
 .done p{color:var(--muted); margin-bottom:22px;}
 .done .big{font-size:2.4rem; font-weight:800; color:var(--accent);}
+.notice{display:none; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-size:0.8rem; color:var(--accent); margin-bottom:12px; text-align:center; font-weight:600;}
+.progress-fill.retry{background:var(--accent2);}
 .btn{
   background:var(--accent); color:#fff; border:none; padding:12px 22px; border-radius:999px;
   font-weight:700; font-size:0.95rem; cursor:pointer; margin:6px;
@@ -95,6 +97,7 @@ h1{font-size:1.15rem; margin:0; font-weight:700;}
     </div>
   </header>
 
+  <div class="notice" id="notice">Kaldığın yerden devam ediyorsun ✔</div>
   <div class="progress-row">
     <span id="progressText">0 / 0</span>
     <span class="score" id="scoreText">Doğru: 0</span>
@@ -102,6 +105,7 @@ h1{font-size:1.15rem; margin:0; font-weight:700;}
   <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 
   <div id="quizArea"></div>
+  <div class="footer-row"><span class="score"></span><button class="restart" id="restartLink">Baştan başla</button></div>
 </div>
 
 <script>
@@ -154,19 +158,148 @@ const WORDS = [
 ["enter","girmek"],["order","sipariş vermek"],["arrive","varmak"],["visit","ziyaret etmek"],
 ["decide","karar vermek"],["agree","kabul etmek / aynı fikirde olmak"],["explain","açıklamak"],["make","yapmak"],
 ["put","koymak"],["try","denemek"],["go","gitmek"],["come","gelmek"],
-,["receive","teslim almak / almak"],
-
-["ask for","istemek"],["show up","gelmek"],["happen","olmak"],["seem","görünmek"],
-["believe","inanmak"],["mean","anlamına gelmek"],
-
-["pan","tava"],["pot","tencere"],["towel rack","havluluk"],["closet","dolap"]
+["look","bakmak"],["hear","duymak"],["know","bilmek"],["think","düşünmek"],
+["feel","hissetmek"],["play","oynamak"],["study","ders çalışmak"],["receive","teslim almak / almak"]
+,
+["ask for","istemek"],
+["show up","gelmek"],
+["happen","olmak"],
+["seem","görünmek"],
+["believe","inanmak"],
+["mean","anlamına gelmek"],
+["hope","umut etmek"],
+["plan","planlamak"],
+["share","paylaşmak"],
+["save","kaydetmek"],
+["accept","kabul etmek"],
+["refuse","reddetmek"],
+["promise","söz vermek"],
+["prefer","tercih etmek"],
+["improve","geliştirmek"],
+["protect","korumak"],
+["prepare","hazırlamak"],
+["continue","devam etmek"],
+["support","desteklemek"],
+["discover","keşfetmek"],
+["repair","onarmak"],
+["escape","kaçmak"],
+["collect","toplamak"],
+["deliver","teslim etmek"],
+["cancel","iptal etmek"],
+["search","aramak"],
+["compare","karşılaştırmak"],
+["repeat","tekrarlamak"],
+["remove","çıkarmak"],
+["arrange","düzenlemek"],
+["lock","kilitlemek"],
+["unlock","kilidini açmak"],
+["pack","paketlemek"],
+["print","yazdırmak"],
+["upload","yüklemek"],
+["download","indirmek"],
+["charge","şarj etmek"],
+["connect","bağlamak"],
+["delete","silmek"],
+["copy","kopyalamak"],
+["knock","kapıyı çalmak"],
+["laugh","gülmek"],
+["cry","ağlamak"],
+["smile","gülümsemek"],
+["hide","saklanmak"],
+["climb","tırmanmak"],
+["jump","zıplamak"],
+["dance","dans etmek"],
+["sing","şarkı söylemek"],
+["swim","yüzmek"],
+["cleaner","temizlikçi"],
+["bottle","şişe"],
+["chair","sandalye"],
+["window","pencere"],
+["door","kapı"],
+["key","anahtar"],
+["wallet","cüzdan"],
+["ticket","bilet"],
+["street","sokak"],
+["bridge","köprü"],
+["room","oda"],
+["table","masa"],
+["phone","telefon"],
+["bag","çanta"],
+["shoe","ayakkabı"],
+["shirt","gömlek"],
+["bed","yatak"],
+["clock","saat"],
+["garden","bahçe"],
+["kitchen","mutfak"],
+["mirror","ayna"],
+["towel","havlu"],
+["spoon","kaşık"],
+["fork","çatal"],
+["plate","tabak"],
+["pillow","yastık"],
+["blanket","battaniye"],
+["lamp","lamba"],
+["wall","duvar"],
+["floor","zemin"],
+["ceiling","tavan"],
+["drawer","çekmece"],
+["shelf","raf"],
+["carpet","halı"],
+["curtain","perde"],
+["soap","sabun"],
+["brush","fırça"],
+["comb","tarak"],
+["bucket","kova"],
+["stairs","merdiven"],
+["fridge","buzdolabı"],
+["oven","fırın"],
+["sink","lavabo"],
+["cup","fincan"],
+["glass","bardak"],
+["knife","bıçak"],
+["pan","tava"],
+["pot","tencere"],
+["towel rack","havluluk"],
+["closet","dolap"]
 ];
 
-let mode = 'en2tr'; // en2tr: soru İngilizce, şıklar Türkçe
-let order = [];
-let idx = 0;
-let correctCount = 0;
+const STORE_KEY = 'kelimeTekrari.v2';
+let mode = 'en2tr';        // en2tr: soru İngilizce, şıklar Türkçe
+let order = [];            // bu turda sorulacak kelime indeksleri
+let idx = 0;               // turdaki sıra
+let correctCount = 0;      // bu turdaki doğru sayısı
 let answered = false;
+let phase = 'main';        // 'main' = ilk tur, 'retry' = yanlışların tekrarı
+let retryRound = 0;
+let wrongSet = [];         // bu turda yanlış yapılanlar
+let firstPassCorrect = 0;  // ilk turdaki doğru sayısı
+let resumed = false;
+let resetArmed = false, resetTimer = null;
+
+function save(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      n: WORDS.length, mode, order, idx, correctCount, phase, retryRound, wrongSet, firstPassCorrect
+    }));
+  }catch(e){}
+}
+function clearSave(){ try{ localStorage.removeItem(STORE_KEY); }catch(e){} }
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return false;
+    const s = JSON.parse(raw);
+    if(!s || s.n !== WORDS.length || !Array.isArray(s.order) || !Array.isArray(s.wrongSet)) return false;
+    const ok = i => Number.isInteger(i) && i>=0 && i<WORDS.length;
+    if(!s.order.every(ok) || !s.wrongSet.every(ok)) return false;
+    if(!(s.idx>=0 && s.idx<=s.order.length)) return false;
+    mode = s.mode==='tr2en' ? 'tr2en' : 'en2tr';
+    order = s.order; idx = s.idx; correctCount = s.correctCount|0;
+    phase = s.phase==='retry' ? 'retry' : 'main';
+    retryRound = s.retryRound|0; wrongSet = s.wrongSet; firstPassCorrect = s.firstPassCorrect|0;
+    return true;
+  }catch(e){ return false; }
+}
 
 function shuffle(arr){
   const a = arr.slice();
@@ -180,11 +313,25 @@ function shuffle(arr){
 function newRound(){
   order = shuffle(WORDS.map((_,i)=>i));
   idx = 0; correctCount = 0; answered = false;
+  phase = 'main'; retryRound = 0; wrongSet = []; firstPassCorrect = 0; resumed = false;
+  save();
+  render();
+}
+
+function startRetry(){
+  order = shuffle(wrongSet);
+  wrongSet = [];
+  idx = 0; correctCount = 0; answered = false;
+  phase = 'retry'; retryRound++;
+  save();
   render();
 }
 
 function pickWrongOptions(correctVal, correctIdx, langIndex){
-  const pool = WORDS.filter((_,i)=>i!==correctIdx).map(w=>w[langIndex]);
+  // Aynı soru metnine sahip başka kelimeler (ör. call/search = aramak) yanlış şık olarak çıkmasın
+  const qIndex = 1 - langIndex;
+  const qVal = WORDS[correctIdx][qIndex];
+  const pool = WORDS.filter((w,i)=>i!==correctIdx && w[qIndex]!==qVal).map(w=>w[langIndex]);
   const shuffled = shuffle(pool);
   const set = new Set([correctVal]);
   const out = [];
@@ -197,19 +344,41 @@ function pickWrongOptions(correctVal, correctIdx, langIndex){
 
 function render(){
   const quizArea = document.getElementById('quizArea');
-  document.getElementById('progressText').textContent = `${Math.min(idx,WORDS.length)} / ${WORDS.length}`;
+  const total = order.length;
+  const shown = Math.min(idx,total);
+  document.getElementById('progressText').textContent =
+    (phase==='retry' ? `Tekrar turu ${retryRound}: ` : '') + `${shown} / ${total}`;
   document.getElementById('scoreText').textContent = `Doğru: ${correctCount}`;
-  document.getElementById('progressFill').style.width = (Math.min(idx,WORDS.length)/WORDS.length*100)+'%';
+  document.getElementById('progressFill').style.width = (total? shown/total*100 : 0)+'%';
   document.getElementById('modeEnBtn').classList.toggle('active', mode==='en2tr');
   document.getElementById('modeTrBtn').classList.toggle('active', mode==='tr2en');
+  document.getElementById('notice').style.display = (resumed && idx>0) ? 'block' : 'none';
+  document.getElementById('progressFill').classList.toggle('retry', phase==='retry');
 
-  if(idx >= WORDS.length){
+  if(idx >= total){
+    if(phase==='main'){ firstPassCorrect = correctCount; }
+    if(wrongSet.length > 0){
+      const n = wrongSet.length;
+      const intro = phase==='main'
+        ? `İlk tur bitti: <b>${firstPassCorrect} / ${WORDS.length}</b> doğru.`
+        : `Tekrar turu bitti, ama hâlâ yanlışların var.`;
+      save();
+      quizArea.innerHTML = `
+        <div class="card done">
+          <h2>Yanlışları tekrar edelim 🔁</h2>
+          <p>${intro}<br>Yanlış yaptığın <b>${n}</b> kelimeyi şimdi bir daha soracağım.</p>
+          <button class="btn" id="retryBtn">Başla</button>
+        </div>`;
+      document.getElementById('retryBtn').onclick = startRetry;
+      return;
+    }
+    clearSave();
     quizArea.innerHTML = `
       <div class="card done">
         <h2>Tebrikler! 🎉</h2>
-        <p>200 kelimeyi tamamladın.</p>
-        <div class="big">${correctCount} / ${WORDS.length}</div>
-        <p>doğru cevap</p>
+        <p>${WORDS.length} kelimeyi tamamladın.</p>
+        <div class="big">${firstPassCorrect} / ${WORDS.length}</div>
+        <p>ilk turda doğru cevap${retryRound>0 ? `<br>Yanlışlarını ${retryRound} tekrar turunda düzelttin.` : ''}</p>
         <button class="btn" id="restartBtn">Tekrar Başla</button>
       </div>`;
     document.getElementById('restartBtn').onclick = newRound;
@@ -227,26 +396,26 @@ function render(){
 
   quizArea.innerHTML = `
     <div class="card">
-      <div class="qlabel">${mode==='en2tr' ? 'İngilizce' : 'Türkçe'}</div>
+      <div class="qlabel">${mode==='en2tr' ? 'İngilizce' : 'Türkçe'}${phase==='retry' ? ' · tekrar' : ''}</div>
       <div class="qword-row">
-        <div class="qword">${question}</div>
+        <div class="qword"></div>
         <button class="sound-btn" id="soundBtn" title="Telaffuzu dinle">🔊</button>
       </div>
     </div>
     <div class="options" id="optionsGrid"></div>
   `;
+  quizArea.querySelector('.qword').textContent = question;
   const grid = document.getElementById('optionsGrid');
   const soundBtn = document.getElementById('soundBtn');
   const speakLang = mode==='en2tr' ? 'en-US' : 'tr-TR';
   soundBtn.onclick = ()=> speak(question, speakLang, soundBtn);
-  // auto-play pronunciation when a new word appears
   speak(question, speakLang, soundBtn);
   answered = false;
   options.forEach(opt=>{
     const btn = document.createElement('button');
     btn.className = 'opt';
     btn.textContent = opt;
-    btn.onclick = ()=> handleAnswer(btn, opt, correctAnswer, grid);
+    btn.onclick = ()=> handleAnswer(btn, opt, correctAnswer, grid, wordIdx);
     grid.appendChild(btn);
   });
 }
@@ -264,30 +433,45 @@ function speak(text, lang, btnEl){
       utter.onerror = ()=> btnEl.classList.remove('playing');
     }
     window.speechSynthesis.speak(utter);
-  } catch(e){ /* speech synthesis not available, ignore */ }
+  } catch(e){}
 }
 
-function handleAnswer(btn, chosen, correctAnswer, grid){
+function handleAnswer(btn, chosen, correctAnswer, grid, wordIdx){
   if(answered) return;
   answered = true;
   const allBtns = grid.querySelectorAll('.opt');
   allBtns.forEach(b=>b.disabled = true);
-
-  if(chosen === correctAnswer){
+  const ok = chosen === correctAnswer;
+  if(ok){
     btn.classList.add('correct');
     correctCount++;
-    setTimeout(()=>{ idx++; render(); }, 550);
   } else {
     btn.classList.add('wrong');
     allBtns.forEach(b=>{ if(b.textContent===correctAnswer) b.classList.add('correct'); });
-    setTimeout(()=>{ idx++; render(); }, 1100);
+    if(!wrongSet.includes(wordIdx)) wrongSet.push(wordIdx);
   }
+  resumed = false;
+  idx++;
+  save();   // anlık çıkılsa bile ilerleme kayıtlı
+  setTimeout(render, ok ? 550 : 1100);
 }
 
 document.getElementById('modeEnBtn').onclick = ()=>{ if(mode!=='en2tr'){ mode='en2tr'; newRound(); } };
 document.getElementById('modeTrBtn').onclick = ()=>{ if(mode!=='tr2en'){ mode='tr2en'; newRound(); } };
 
-newRound();
+const resetBtn = document.getElementById('restartLink');
+resetBtn.onclick = ()=>{
+  if(!resetArmed){
+    resetArmed = true;
+    resetBtn.textContent = 'Emin misin? Tekrar dokun';
+    resetTimer = setTimeout(()=>{ resetArmed=false; resetBtn.textContent='Baştan başla'; }, 3000);
+  } else {
+    clearTimeout(resetTimer); resetArmed=false; resetBtn.textContent='Baştan başla';
+    newRound();
+  }
+};
+
+if(load()){ resumed = true; render(); } else { newRound(); }
 </script>
 </body>
 </html>
